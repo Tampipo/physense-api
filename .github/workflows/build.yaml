@@ -25,6 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Build package
     needs: test
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
