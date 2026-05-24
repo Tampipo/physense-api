@@ -34,10 +34,9 @@ jobs:
       - name: Set image tags
         id: meta
         run: |
-          cat pyproject.toml | grep '^version'
-          VERSION=$(grep '^version' pyproject.toml | head -1 | cut -d'"' -f2)
-          echo "Extracted: '$VERSION'"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=$REPO" >> $GITHUB_OUTPUT
+          echo "VERSION=0.1.0" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v2
@@ -53,6 +52,6 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.VERSION }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ steps.meta.outputs.REPO }}:${{ steps.meta.outputs.VERSION }}
+            ghcr.io/${{ steps.meta.outputs.REPO }}:latest
       
