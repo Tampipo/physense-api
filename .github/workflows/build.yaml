@@ -34,7 +34,9 @@ jobs:
       - name: Set image tags
         id: meta
         run: |
-          VERSION=$(grep '^version' pyproject.toml | head-1 | cut -d'"' -f2)
+          cat pyproject.toml | grep '^version'
+          VERSION=$(grep '^version' pyproject.toml | head -1 | cut -d'"' -f2)
+          echo "Extracted: '$VERSION'"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
