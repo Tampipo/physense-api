@@ -1,0 +1,114 @@
+"""
+QM router.
+
+POST /qm/eigenstates  — solve time-independent Schrödinger equation
+WS   /qm/evolve       — stream time evolution frames via WebSocket
+"""
+
+import json
+
+import numpy as np
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+
+from physense_utils.grids import Grid1D
+from physense_qm import QuantumSystem1D
+from physense_qm.wavepacket import GaussianWavepacket
+
+from physense_api.schemas.qm import (
+    EigenstatesRequest,
+    EigenstatesResponse,
+    EvolveRequest,
+    EvolveFrame,
+    EvolveMetadata,
+)
+from physense_api.utils.potentials import build_potential
+
+router = APIRouter(prefix="/qm", tags=["Quantum Mechanics"])
+
+
+@router.post("/eigenstates", response_model=EigenstatesResponse)
+def eigenstates(req: EigenstatesRequest) -> EigenstatesResponse:
+    """
+    Solve the time-independent Schrödinger equation and return eigenstates.
+
+    Accepts either a named potential (Option A) or a custom V(x) array (Option B).
+    """
+    grid = Grid1D(x_min=req.grid.x_min, x_max=req.grid.x_max, n_points=req.grid.n_points)
+    try:
+        potential = build_potential(req.potential, grid)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    system = QuantumSystem1D(grid=grid, potential=potential)
+    sol = system.solve(n_states=req.n_states)
+
+    return EigenstatesResponse(
+        x=grid.x.tolist(),
+        potential=sol.potential.tolist(),
+        energies=sol.energies.tolist(),
+        wavefunctions=[psi.tolist() for psi in sol.wavefunctions],
+        n_states=sol.n_states,
+    )
+
+
+@router.websocket("/evolve")
+async def evolve(websocket: WebSocket) -> None:
+    """
+    Stream time evolution frames via WebSocket.
+
+    Protocol:
+    1. Client connects and sends EvolveRequest as JSON
+    2. Server sends metadata frame first: { "type": "metadata", ... }
+    3. Server streams evolution frames: { "type": "frame", "frame": i, "t": t, ... }
+    4. Server sends done signal: { "type": "done" }
+    """
+    await websocket.accept()
+
+    try:
+        data = await websocket.receive_text()
+        req = EvolveRequest.model_validate_json(data)
+
+        grid = Grid1D(x_min=req.grid.x_min, x_max=req.grid.x_max, n_points=req.grid.n_points)
+        potential = build_potential(req.potential, grid)
+        system = QuantumSystem1D(grid=grid, potential=potential)
+
+        wavepacket = GaussianWavepacket(
+            x0=req.wavepacket.x0,
+            k0=req.wavepacket.k0,
+            sigma=req.wavepacket.sigma,
+        )
+
+        # Send metadata first so frontend can set up the canvas
+        metadata = EvolveMetadata(
+            x=grid.x.tolist(),
+            potential=potential(grid.x).tolist(),
+            t_max=req.t_max,
+            n_frames=req.n_frames,
+        )
+        await websocket.send_text(json.dumps({"type": "metadata", **metadata.model_dump()}))
+
+        # Run evolution and stream frames
+        evo = system.evolve(
+            initial_state=wavepacket,
+            t_max=req.t_max,
+            dt=req.dt,
+            n_frames=req.n_frames,
+        )
+
+        for i in range(evo.n_frames):
+            prob = np.abs(evo.psi[i]) ** 2
+            norm = float(np.trapezoid(prob, grid.x))
+            frame = EvolveFrame(
+                frame=i,
+                t=float(evo.times[i]),
+                probability_density=prob.tolist(),
+                norm=norm,
+            )
+            await websocket.send_text(json.dumps({"type": "frame", **frame.model_dump()}))
+
+        await websocket.send_text(json.dumps({"type": "done"}))
+
+    except WebSocketDisconnect:
+        pass
+
+
+__all__ = ["router"]
