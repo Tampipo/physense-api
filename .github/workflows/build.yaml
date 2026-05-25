@@ -12,6 +12,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     name: Run tests
     steps:
       - uses: actions/checkout@v4
