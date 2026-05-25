@@ -1,0 +1,268 @@
+openapi: 3.1.0
+info:
+  title: Physense API
+  description: Physics simulation backend for the Physense platform.
+  version: 0.1.0
+paths:
+  /qm/eigenstates:
+    post:
+      tags:
+      - Quantum Mechanics
+      summary: Eigenstates
+      description: 'Solve the time-independent Schrödinger equation and return eigenstates.
+
+
+        Accepts either a named potential (Option A) or a custom V(x) array (Option
+        B).'
+      operationId: eigenstates_qm_eigenstates_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EigenstatesRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EigenstatesResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    BarrierParams:
+      properties:
+        height:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Height
+          default: 2.0
+        width:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Width
+          default: 1.0
+        x0:
+          type: number
+          title: X0
+          default: 0.0
+      type: object
+      title: BarrierParams
+    DoubleWellParams:
+      properties:
+        a:
+          type: number
+          exclusiveMinimum: 0.0
+          title: A
+          default: 1.0
+        b:
+          type: number
+          exclusiveMinimum: 0.0
+          title: B
+          default: 4.0
+      type: object
+      title: DoubleWellParams
+    EigenstatesRequest:
+      properties:
+        grid:
+          $ref: '#/components/schemas/GridSchema'
+        potential:
+          $ref: '#/components/schemas/PotentialSchema'
+        n_states:
+          type: integer
+          maximum: 20.0
+          minimum: 1.0
+          title: N States
+          default: 6
+      type: object
+      required:
+      - potential
+      title: EigenstatesRequest
+    EigenstatesResponse:
+      properties:
+        x:
+          items:
+            type: number
+          type: array
+          title: X
+        potential:
+          items:
+            type: number
+          type: array
+          title: Potential
+        energies:
+          items:
+            type: number
+          type: array
+          title: Energies
+        wavefunctions:
+          items:
+            items:
+              type: number
+            type: array
+          type: array
+          title: Wavefunctions
+        n_states:
+          type: integer
+          title: N States
+      type: object
+      required:
+      - x
+      - potential
+      - energies
+      - wavefunctions
+      - n_states
+      title: EigenstatesResponse
+    FiniteWellParams:
+      properties:
+        depth:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Depth
+          default: 5.0
+        width:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Width
+          default: 4.0
+        x0:
+          type: number
+          title: X0
+          default: 0.0
+      type: object
+      title: FiniteWellParams
+    GridSchema:
+      properties:
+        x_min:
+          type: number
+          title: X Min
+          default: -10.0
+        x_max:
+          type: number
+          title: X Max
+          default: 10.0
+        n_points:
+          type: integer
+          maximum: 2048.0
+          minimum: 64.0
+          title: N Points
+          default: 512
+      type: object
+      title: GridSchema
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HarmonicParams:
+      properties:
+        omega:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Omega
+          default: 1.0
+        x0:
+          type: number
+          title: X0
+          default: 0.0
+      type: object
+      title: HarmonicParams
+    InfiniteWellParams:
+      properties:
+        width:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Width
+          default: 4.0
+        x0:
+          type: number
+          title: X0
+          default: 0.0
+      type: object
+      title: InfiniteWellParams
+    PotentialSchema:
+      properties:
+        type:
+          $ref: '#/components/schemas/PotentialType'
+        params:
+          anyOf:
+          - $ref: '#/components/schemas/HarmonicParams'
+          - $ref: '#/components/schemas/InfiniteWellParams'
+          - $ref: '#/components/schemas/FiniteWellParams'
+          - $ref: '#/components/schemas/BarrierParams'
+          - $ref: '#/components/schemas/StepParams'
+          - $ref: '#/components/schemas/DoubleWellParams'
+          - type: 'null'
+          title: Params
+        values:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          title: Values
+          description: Custom V(x) values, one per grid point (Option B)
+      type: object
+      required:
+      - type
+      title: PotentialSchema
+    PotentialType:
+      type: string
+      enum:
+      - harmonic
+      - infinite_well
+      - finite_well
+      - barrier
+      - step
+      - double_well
+      - free
+      - custom
+      title: PotentialType
+    StepParams:
+      properties:
+        height:
+          type: number
+          title: Height
+          default: 1.0
+        x0:
+          type: number
+          title: X0
+          default: 0.0
+      type: object
+      title: StepParams
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
