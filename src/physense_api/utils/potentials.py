@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Tanguy Marsault - PhySense
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """
 Maps PotentialSchema to physense_qm Potential objects.
 Keeps routing logic out of the router.
