@@ -100,7 +100,7 @@ jobs:
           TAG="sha-${GITHUB_SHA::7}"   # main -> rolling sha (matches type=sha,format=short)
           echo "TAG=$TAG" >> "$GITHUB_ENV"
           cd "gitops/apps/physense-api" \
-            && kustomize edit set image "ghcr.io/$OWNER/physense-api=ghcr.io/$OWNER/physense-api:$TAG" )
+            && kustomize edit set image "ghcr.io/$OWNER/physense-api=ghcr.io/$OWNER/physense-api:$TAG"
           done
 
       - name: Commit and push changes
