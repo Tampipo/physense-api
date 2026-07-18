@@ -76,3 +76,38 @@ jobs:
             ghcr.io/${{ steps.meta.outputs.REPO }}:${{ steps.meta.outputs.VERSION }}
             ghcr.io/${{ steps.meta.outputs.REPO }}:latest
       
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Kubernetes
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout gitops repo
+        uses: actions/checkout@v4
+        with:
+          repository: Tampipo/physense-gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+
+      - name: Install kustomize
+        run: |
+          curl -sLo k.tgz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
+          tar xzf k.tgz && sudo mv kustomize /usr/local/bin/
+
+      - name: Bump image tags
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          TAG="sha-${GITHUB_SHA::7}"   # main -> rolling sha (matches type=sha,format=short)
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          cd "gitops/apps/physense-api" \
+            && kustomize edit set image "ghcr.io/$OWNER/physense-api=ghcr.io/$OWNER/physense-api:$TAG" )
+          done
+
+      - name: Commit and push changes
+        run: |
+          cd gitops 
+          git diff --quiet && { echo "no image change"; exit 0; }
+          git config user.name "github-actions[bot]" 
+          git config user.email "github-actions[bot]@users.noreply.github.com" 
+          git commit -am "deploy: tarot images ${TAG}"
+          git push
