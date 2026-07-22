@@ -34,6 +34,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /qm/single-atom-state:
+    post:
+      tags:
+      - Quantum Mechanics
+      summary: Single Atom State
+      description: 'Compute the single-atom state for a given potential and quantum
+        numbers.
+
+
+        Accepts either a named potential (Option A) or a custom V(x) array (Option
+        B).'
+      operationId: single_atom_state_qm_single_atom_state_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SingleAtomStateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleAtomStateResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     BarrierParams:
@@ -137,6 +168,52 @@ components:
           default: 0.0
       type: object
       title: FiniteWellParams
+    Grid3DSchema:
+      properties:
+        x_min:
+          type: number
+          title: X Min
+          default: -10.0
+        x_max:
+          type: number
+          title: X Max
+          default: 10.0
+        y_min:
+          type: number
+          title: Y Min
+          default: -10.0
+        y_max:
+          type: number
+          title: Y Max
+          default: 10.0
+        z_min:
+          type: number
+          title: Z Min
+          default: -10.0
+        z_max:
+          type: number
+          title: Z Max
+          default: 10.0
+        nx:
+          type: integer
+          maximum: 512.0
+          minimum: 32.0
+          title: Nx
+          default: 128
+        ny:
+          type: integer
+          maximum: 512.0
+          minimum: 32.0
+          title: Ny
+          default: 128
+        nz:
+          type: integer
+          maximum: 512.0
+          minimum: 32.0
+          title: Nz
+          default: 128
+      type: object
+      title: Grid3DSchema
     GridSchema:
       properties:
         x_min:
@@ -228,6 +305,87 @@ components:
       - free
       - custom
       title: PotentialType
+    SingleAtomStateRequest:
+      properties:
+        grid:
+          $ref: '#/components/schemas/Grid3DSchema'
+        Z:
+          type: integer
+          maximum: 100.0
+          minimum: 1.0
+          title: Z
+          description: Atomic number
+          default: 1
+        n:
+          type: integer
+          maximum: 10.0
+          minimum: 1.0
+          title: N
+          description: Principal quantum number
+          default: 1
+        l:
+          type: integer
+          maximum: 9.0
+          minimum: 0.0
+          title: L
+          description: Orbital angular momentum quantum number
+          default: 0
+        m:
+          type: integer
+          title: M
+          description: Magnetic quantum number
+          default: 0
+      type: object
+      title: SingleAtomStateRequest
+    SingleAtomStateResponse:
+      properties:
+        x:
+          items:
+            type: number
+          type: array
+          title: X
+        y:
+          items:
+            type: number
+          type: array
+          title: Y
+        z:
+          items:
+            type: number
+          type: array
+          title: Z
+        orbital:
+          items:
+            items:
+              items:
+                type: number
+              type: array
+            type: array
+          type: array
+          title: Orbital
+        Z:
+          type: integer
+          title: Z
+        n:
+          type: integer
+          title: N
+        l:
+          type: integer
+          title: L
+        m:
+          type: integer
+          title: M
+      type: object
+      required:
+      - x
+      - y
+      - z
+      - orbital
+      - Z
+      - n
+      - l
+      - m
+      title: SingleAtomStateResponse
     StepParams:
       properties:
         height:
