@@ -152,7 +152,7 @@ class SingleAtomStateResponse(BaseModel):
     x: list[float]
     y: list[float]
     z: list[float]
-    orbital: list[list[list[float]]]  # shape: (nx, ny, nz)
+    psi: list[list[list[float]]]  # real part of ψ, signed — shape: (nx, ny, nz)
     Z: int
     n: int
     l: int
