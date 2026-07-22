@@ -25,6 +25,44 @@ class GridSchema(BaseModel):
             raise ValueError("x_min must be less than x_max")
         return self
 
+class Grid2DSchema(BaseModel):
+    x_min: float = Field(default=-10.0)
+    x_max: float = Field(default=10.0)
+    y_min: float = Field(default=-10.0)
+    y_max: float = Field(default=10.0)
+    nx: int = Field(default=512, ge=64, le=2048)
+    ny: int = Field(default=512, ge=64, le=2048)
+
+    @model_validator(mode="after")
+    def check_bounds(self) -> "Grid2DSchema":
+        if self.x_min >= self.x_max:
+            raise ValueError("x_min must be less than x_max")
+        if self.y_min >= self.y_max:
+            raise ValueError("y_min must be less than y_max")
+        return self
+
+class Grid3DSchema(BaseModel):
+    x_min: float = Field(default=-10.0)
+    x_max: float = Field(default=10.0)
+    y_min: float = Field(default=-10.0)
+    y_max: float = Field(default=10.0)
+    z_min: float = Field(default=-10.0)
+    z_max: float = Field(default=10.0)
+    nx: int = Field(default=128, ge=32, le=512)
+    ny: int = Field(default=128, ge=32, le=512)
+    nz: int = Field(default=128, ge=32, le=512)
+
+    @model_validator(mode="after")
+    def check_bounds(self) -> "Grid3DSchema":
+        if self.x_min >= self.x_max:
+            raise ValueError("x_min must be less than x_max")
+        if self.y_min >= self.y_max:
+            raise ValueError("y_min must be less than y_max")
+        if self.z_min >= self.z_max:
+            raise ValueError("z_min must be less than z_max")
+        return self
+
+
 
 # ── Potentials (Option A) ─────────────────────────────────────────────────────
 
@@ -86,6 +124,8 @@ class PotentialSchema(BaseModel):
         return self
 
 
+
+
 # ── Eigenstates ───────────────────────────────────────────────────────────────
 
 class EigenstatesRequest(BaseModel):
@@ -101,7 +141,23 @@ class EigenstatesResponse(BaseModel):
     wavefunctions: list[list[float]]  # shape: (n_states, n_points)
     n_states: int
 
+class SingleAtomStateRequest(BaseModel):
+    grid: Grid3DSchema = Field(default_factory=Grid3DSchema)
+    Z: int = Field(default=1, ge=1, le=100, description="Atomic number")
+    n: int = Field(default=1, ge=1, le=10, description="Principal quantum number")
+    l: int = Field(default=0, ge=0, le=9, description="Orbital angular momentum quantum number")
+    m: int = Field(default=0, description="Magnetic quantum number")
 
+class SingleAtomStateResponse(BaseModel):
+    x: list[float]
+    y: list[float]
+    z: list[float]
+    orbital: list[list[list[float]]]  # shape: (nx, ny, nz)
+    Z: int
+    n: int
+    l: int
+    m: int
+    
 # ── Evolution (WebSocket) ─────────────────────────────────────────────────────
 
 class WavepacketSchema(BaseModel):
@@ -143,4 +199,6 @@ __all__ = [
     "EvolveRequest",
     "EvolveFrame",
     "EvolveMetadata",
+    "SingleAtomStateRequest",
+    "SingleAtomStateResponse",
 ]

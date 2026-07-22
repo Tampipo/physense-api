@@ -13,16 +13,18 @@ import json
 import numpy as np
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
-from physense_utils.grids import Grid1D
+from physense_utils.grids import Grid1D, Grid3D
 from physense_qm import QuantumSystem1D
 from physense_qm.wavepacket import GaussianWavepacket
-
+from physense_qm.orbitals import SingleAtomState
 from physense_api.schemas.qm import (
     EigenstatesRequest,
     EigenstatesResponse,
     EvolveRequest,
     EvolveFrame,
     EvolveMetadata,
+    SingleAtomStateResponse,
+    SingleAtomStateRequest,
 )
 from physense_api.utils.potentials import build_potential
 
@@ -52,6 +54,34 @@ def eigenstates(req: EigenstatesRequest) -> EigenstatesResponse:
         n_states=sol.n_states,
     )
 
+@router.post("/single-atom-state", response_model=SingleAtomStateResponse)
+def single_atom_state(req: SingleAtomStateRequest) -> SingleAtomStateResponse:
+    """
+    Compute the single-atom state for a given potential and quantum numbers.
+
+    Accepts either a named potential (Option A) or a custom V(x) array (Option B).
+    """
+    grid = Grid3D(x_min=req.grid.x_min, x_max=req.grid.x_max, 
+                  y_min=req.grid.y_min, y_max=req.grid.y_max,
+                    z_min=req.grid.z_min, z_max=req.grid.z_max,
+                    nx=req.grid.nx, ny=req.grid.ny, nz=req.grid.nz)
+
+    try:
+        atom_state = SingleAtomState(Z=req.Z, n=req.n, l=req.l, m=req.m)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    density_values = atom_state.density_on_grid(grid)
+
+    return SingleAtomStateResponse(
+        x=grid.x.tolist(),
+        y=grid.y.tolist(),
+        z=grid.z.tolist(),
+        orbital=density_values.tolist(),
+        Z=req.Z,
+        n=req.n,
+        l=req.l,
+        m=req.m,
+    )
 
 @router.websocket("/evolve")
 async def evolve(websocket: WebSocket) -> None:
@@ -112,6 +142,7 @@ async def evolve(websocket: WebSocket) -> None:
 
     except WebSocketDisconnect:
         pass
+
 
 
 __all__ = ["router"]
