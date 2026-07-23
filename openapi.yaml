@@ -267,6 +267,39 @@ components:
           default: 0.0
       type: object
       title: InfiniteWellParams
+    LobeMeshSchema:
+      properties:
+        positions:
+          type: string
+          title: Positions
+        normals:
+          type: string
+          title: Normals
+        indices:
+          type: string
+          title: Indices
+        vertex_count:
+          type: integer
+          title: Vertex Count
+        triangle_count:
+          type: integer
+          title: Triangle Count
+      type: object
+      required:
+      - positions
+      - normals
+      - indices
+      - vertex_count
+      - triangle_count
+      title: LobeMeshSchema
+      description: 'One signed isosurface shell as a triangle mesh, packed for direct
+        upload to
+
+        a WebGL BufferGeometry. Each string is base64 of the little-endian raw
+
+        bytes: positions/normals are flat float32 [x,y,z,...]; indices are flat
+
+        uint32 triangle vertex indices.'
     PotentialSchema:
       properties:
         type:
@@ -339,30 +372,17 @@ components:
       title: SingleAtomStateRequest
     SingleAtomStateResponse:
       properties:
-        x:
-          items:
-            type: number
-          type: array
-          title: X
-        y:
-          items:
-            type: number
-          type: array
-          title: Y
-        z:
-          items:
-            type: number
-          type: array
-          title: Z
-        psi:
-          items:
-            items:
-              items:
-                type: number
-              type: array
-            type: array
-          type: array
-          title: Psi
+        positive:
+          anyOf:
+          - $ref: '#/components/schemas/LobeMeshSchema'
+          - type: 'null'
+        negative:
+          anyOf:
+          - $ref: '#/components/schemas/LobeMeshSchema'
+          - type: 'null'
+        bound_radius:
+          type: number
+          title: Bound Radius
         Z:
           type: integer
           title: Z
@@ -377,10 +397,9 @@ components:
           title: M
       type: object
       required:
-      - x
-      - y
-      - z
-      - psi
+      - positive
+      - negative
+      - bound_radius
       - Z
       - n
       - l
