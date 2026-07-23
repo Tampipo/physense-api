@@ -15,6 +15,7 @@ dependencies = [
     "uvicorn>=0.30",
     "websockets>=13.0",
     "pyyaml>=6.0",
+    "scikit-image>=0.24",
     "physense-utils @ git+https://github.com/Tampipo/physense-utils",
     "physense-qm @ git+https://github.com/Tampipo/physense-qm",
 ]

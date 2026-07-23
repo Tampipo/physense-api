@@ -27,6 +27,7 @@ from physense_api.schemas.qm import (
     SingleAtomStateRequest,
 )
 from physense_api.utils.potentials import build_potential
+from physense_api.utils.orbital_mesh import build_orbital_mesh
 
 router = APIRouter(prefix="/qm", tags=["Quantum Mechanics"])
 
@@ -70,13 +71,14 @@ def single_atom_state(req: SingleAtomStateRequest) -> SingleAtomStateResponse:
         atom_state = SingleAtomState(Z=req.Z, n=req.n, l=req.l, m=req.m)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    psi_values = atom_state.wavefunction_on_grid(grid)
+    psi_values = np.asarray(atom_state.wavefunction_on_grid(grid))
+
+    mesh = build_orbital_mesh(psi_values, grid.x, grid.y, grid.z)
 
     return SingleAtomStateResponse(
-        x=grid.x.tolist(),
-        y=grid.y.tolist(),
-        z=grid.z.tolist(),
-        psi=psi_values.tolist(),
+        positive=mesh["positive"],
+        negative=mesh["negative"],
+        bound_radius=mesh["bound_radius"],
         Z=req.Z,
         n=req.n,
         l=req.l,

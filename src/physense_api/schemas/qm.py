@@ -148,11 +148,28 @@ class SingleAtomStateRequest(BaseModel):
     l: int = Field(default=0, ge=0, le=9, description="Orbital angular momentum quantum number")
     m: int = Field(default=0, description="Magnetic quantum number")
 
+class LobeMeshSchema(BaseModel):
+    """
+    One signed isosurface shell as a triangle mesh, packed for direct upload to
+    a WebGL BufferGeometry. Each string is base64 of the little-endian raw
+    bytes: positions/normals are flat float32 [x,y,z,...]; indices are flat
+    uint32 triangle vertex indices.
+    """
+
+    positions: str
+    normals: str
+    indices: str
+    vertex_count: int
+    triangle_count: int
+
+
 class SingleAtomStateResponse(BaseModel):
-    x: list[float]
-    y: list[float]
-    z: list[float]
-    psi: list[list[list[float]]]  # real part of ψ, signed — shape: (nx, ny, nz)
+    # Server-side isosurface: the ±ψ boundary shells at the 80%-probability
+    # level, instead of the full (nx, ny, nz) field — a few hundred KB rather
+    # than tens of MB, and no client-side meshing.
+    positive: LobeMeshSchema | None
+    negative: LobeMeshSchema | None
+    bound_radius: float  # half-size of the shape's bounding cube (Bohr radii)
     Z: int
     n: int
     l: int

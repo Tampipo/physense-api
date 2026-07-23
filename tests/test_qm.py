@@ -5,6 +5,7 @@
 Tests for the QM router.
 """
 
+import base64
 import json
 import pytest
 import numpy as np
@@ -113,6 +114,7 @@ class TestEigenstates:
 
 class TestSingleAtomState:
     async def test_hydrogen_1s(self, async_client):
+        # 1s is nodeless and everywhere positive: a single +ψ lobe, no −ψ lobe.
         async with async_client as c:
             resp = await c.post("/qm/single-atom-state", json={
                 "grid": {"x_min": -10, "x_max": 10, "y_min": -10, "y_max": 10,
@@ -121,15 +123,18 @@ class TestSingleAtomState:
             })
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data["x"]) == 32
-        assert len(data["y"]) == 32
-        assert len(data["z"]) == 32
-        assert len(data["psi"]) == 32
-        assert len(data["psi"][0]) == 32
-        assert len(data["psi"][0][0]) == 32
+        assert data["bound_radius"] > 0
+        assert data["negative"] is None
+        lobe = data["positive"]
+        assert lobe is not None
+        assert lobe["vertex_count"] > 0
+        assert lobe["triangle_count"] > 0
+        # positions are base64 of flat float32 [x,y,z,...] — 3 floats/vertex.
+        assert len(base64.b64decode(lobe["positions"])) == lobe["vertex_count"] * 3 * 4
+        assert len(base64.b64decode(lobe["indices"])) == lobe["triangle_count"] * 3 * 4
 
-    async def test_psi_is_signed_for_p_orbital(self, async_client):
-        # 2p_z has a node at theta=pi/2, so psi must take both signs.
+    async def test_both_lobes_for_p_orbital(self, async_client):
+        # 2p_z has a node at theta=pi/2, so ψ takes both signs -> two lobes.
         async with async_client as c:
             resp = await c.post("/qm/single-atom-state", json={
                 "grid": {"x_min": -10, "x_max": 10, "y_min": -10, "y_max": 10,
@@ -137,9 +142,11 @@ class TestSingleAtomState:
                 "Z": 1, "n": 2, "l": 1, "m": 0,
             })
         assert resp.status_code == 200
-        flat = np.array(resp.json()["psi"]).flatten()
-        assert np.any(flat > 0.0)
-        assert np.any(flat < 0.0)
+        data = resp.json()
+        assert data["positive"] is not None
+        assert data["negative"] is not None
+        assert data["positive"]["triangle_count"] > 0
+        assert data["negative"]["triangle_count"] > 0
 
     async def test_invalid_quantum_numbers(self, async_client):
         async with async_client as c:
