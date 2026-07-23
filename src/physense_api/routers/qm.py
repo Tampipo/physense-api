@@ -70,13 +70,13 @@ def single_atom_state(req: SingleAtomStateRequest) -> SingleAtomStateResponse:
         atom_state = SingleAtomState(Z=req.Z, n=req.n, l=req.l, m=req.m)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    density_values = atom_state.density_on_grid(grid)
+    psi_values = atom_state.wavefunction_on_grid(grid)
 
     return SingleAtomStateResponse(
         x=grid.x.tolist(),
         y=grid.y.tolist(),
         z=grid.z.tolist(),
-        orbital=density_values.tolist(),
+        psi=psi_values.tolist(),
         Z=req.Z,
         n=req.n,
         l=req.l,

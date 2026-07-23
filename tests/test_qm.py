@@ -111,6 +111,53 @@ class TestEigenstates:
         assert resp.status_code == 422
 
 
+class TestSingleAtomState:
+    async def test_hydrogen_1s(self, async_client):
+        async with async_client as c:
+            resp = await c.post("/qm/single-atom-state", json={
+                "grid": {"x_min": -10, "x_max": 10, "y_min": -10, "y_max": 10,
+                         "z_min": -10, "z_max": 10, "nx": 32, "ny": 32, "nz": 32},
+                "Z": 1, "n": 1, "l": 0, "m": 0,
+            })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["x"]) == 32
+        assert len(data["y"]) == 32
+        assert len(data["z"]) == 32
+        assert len(data["psi"]) == 32
+        assert len(data["psi"][0]) == 32
+        assert len(data["psi"][0][0]) == 32
+
+    async def test_psi_is_signed_for_p_orbital(self, async_client):
+        # 2p_z has a node at theta=pi/2, so psi must take both signs.
+        async with async_client as c:
+            resp = await c.post("/qm/single-atom-state", json={
+                "grid": {"x_min": -10, "x_max": 10, "y_min": -10, "y_max": 10,
+                         "z_min": -10, "z_max": 10, "nx": 32, "ny": 32, "nz": 32},
+                "Z": 1, "n": 2, "l": 1, "m": 0,
+            })
+        assert resp.status_code == 200
+        flat = np.array(resp.json()["psi"]).flatten()
+        assert np.any(flat > 0.0)
+        assert np.any(flat < 0.0)
+
+    async def test_invalid_quantum_numbers(self, async_client):
+        async with async_client as c:
+            resp = await c.post("/qm/single-atom-state", json={
+                "grid": {"nx": 32, "ny": 32, "nz": 32},
+                "Z": 1, "n": 1, "l": 1, "m": 0,  # l must be < n
+            })
+        assert resp.status_code == 422
+
+    async def test_grid_resolution_too_low(self, async_client):
+        async with async_client as c:
+            resp = await c.post("/qm/single-atom-state", json={
+                "grid": {"nx": 8, "ny": 8, "nz": 8},
+                "Z": 1, "n": 1, "l": 0, "m": 0,
+            })
+        assert resp.status_code == 422
+
+
 class TestEvolveWebSocket:
     def test_evolve_metadata_and_frames(self, client):
         with client.websocket_connect("/qm/evolve") as ws:
