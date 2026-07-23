@@ -354,7 +354,7 @@ components:
             type: number
           type: array
           title: Z
-        orbital:
+        psi:
           items:
             items:
               items:
@@ -362,7 +362,7 @@ components:
               type: array
             type: array
           type: array
-          title: Orbital
+          title: Psi
         Z:
           type: integer
           title: Z
@@ -380,7 +380,7 @@ components:
       - x
       - y
       - z
-      - orbital
+      - psi
       - Z
       - n
       - l
